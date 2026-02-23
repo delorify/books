@@ -1,0 +1,56 @@
+{% extends "core/base.html" %}
+{% block title %}Моя библиотека{% endblock %}
+{% block content %}
+
+<header class="bh-page-header">
+    <h1 class="bh-page-title">Моя библиотека</h1>
+    <p class="bh-page-subtitle">
+        Отслеживай книги, которые хочешь прочитать, уже читаешь или завершил.
+    </p>
+</header>
+
+<section class="bh-card">
+    <div class="bh-chip-row">
+        <a class="bh-chip {% if status == 'wishlist' %}bh-chip-active{% endif %}"
+            href="{% url 'my_library' %}?status=wishlist">Хочу</a>
+        <a class="bh-chip {% if status == 'reading' %}bh-chip-active{% endif %}"
+            href="{% url 'my_library' %}?status=reading">Читаю</a>
+        <a class="bh-chip {% if status == 'finished' %}bh-chip-active{% endif %}"
+            href="{% url 'my_library' %}?status=finished">Прочитано</a>
+    </div>
+
+    <div class="bh-spacer-vertical"></div>
+
+    {% if items %}
+    {% for it in items %}
+    <article class="bh-card">
+        <div class="bh-flex-row bh-flex-space-between bh-flex-gap-8">
+            <div style="flex:1;">
+                <a href="{% url 'book_detail' it.book.pk %}"
+                    style="font-weight:600; font-size:14px; text-decoration:none;">{{ it.book.title }}</a>
+                <div class="bh-text-muted">
+                    Прогресс: {{ it.progress_percent }}%
+                </div>
+                <div class="bh-spacer-vertical"></div>
+                <div class="bh-progress" aria-hidden="true">
+                    <div class="bh-progress-inner" style="width: {{ it.progress_percent }}%;"></div>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'update_progress' it.book.pk %}">
+                {% csrf_token %}
+                <div class="bh-flex-row bh-flex-gap-8">
+                    <input class="bh-input bh-input-inline-number" type="number" name="progress" min="0" max="100"
+                        value="{{ it.progress_percent }}">
+                    <button class="bh-btn bh-btn-ghost bh-btn-small" type="submit">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </article>
+    {% endfor %}
+    {% else %}
+    <p class="bh-text-muted">Пока пусто. Добавь книги из каталога или через импорт.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

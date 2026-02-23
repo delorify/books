@@ -1,0 +1,83 @@
+{% extends "core/base.html" %}
+{% block title %}Каталог{% endblock %}
+{% block content %}
+
+<section class="bh-hero">
+    <div class="bh-kicker">Каталог</div>
+    <h1 class="bh-hero-title">Открывай, читай и собирай свою библиотеку</h1>
+    <p class="bh-hero-subtitle">
+        Ищи книги, импортируй из Open Library и веди личный прогресс чтения в одном современном пространстве.
+    </p>
+    {% if user.is_authenticated and continue_item %}
+    <div class="bh-hero-actions">
+        <a href="{% url 'book_read' continue_item.book.pk %}" class="bh-btn bh-btn-primary">
+            Продолжить: {{ continue_item.book.title }}
+        </a>
+        <a href="{% url 'my_library' %}" class="bh-btn bh-btn-ghost">
+            Моя библиотека
+        </a>
+    </div>
+    {% else %}
+    <div class="bh-hero-actions">
+        <a href="{% url 'import_search' %}" class="bh-btn bh-btn-primary">
+            Импортировать книги
+        </a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'my_library' %}" class="bh-btn bh-btn-ghost">
+            Моя библиотека
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+
+<section class="bh-card">
+    <form method="get">
+        <div class="bh-flex-row bh-flex-space-between bh-flex-gap-8">
+            <div style="flex: 1;">
+                <input class="bh-input" type="text" name="q" placeholder="Поиск по названию..." value="{{ q }}"
+                    data-bh-search>
+            </div>
+        </div>
+    </form>
+
+    <div class="bh-spacer-vertical"></div>
+
+    {% if books %}
+    <div class="bh-grid-books">
+        {% for b in books %}
+        <article class="bh-card">
+            <div class="bh-card-row">
+                {% if b.cover_url %}
+                <img class="bh-cover" src="{{ b.cover_url }}" alt="">
+                {% endif %}
+                <div style="flex:1;">
+                    <div class="bh-flex-row bh-flex-space-between">
+                        <div>
+                            <h2 style="margin:0; font-size:15px; font-weight:600;">
+                                <a href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
+                            </h2>
+                            <div class="bh-text-muted">
+                                {% if b.year %}{{ b.year }} · {% endif %}
+                                {% for a in b.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            </div>
+                        </div>
+                        <div>
+                            {% if b.is_paid %}
+                            <span class="bh-badge bh-badge-paid">{{ b.price }} ₸ · платная</span>
+                            {% else %}
+                            <span class="bh-badge bh-badge-free">Бесплатная</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="bh-text-muted">Пока пусто. Зайди в «Импорт» и добавь книги из Open Library.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

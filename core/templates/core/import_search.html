@@ -1,0 +1,63 @@
+{% extends "core/base.html" %}
+{% block title %}Импорт{% endblock %}
+{% block content %}
+
+<header class="bh-page-header">
+    <div class="bh-kicker">Импорт</div>
+    <h1 class="bh-page-title">Импорт книг из Open Library</h1>
+    <p class="bh-page-subtitle">
+        Найди книги по названию или автору и добавь их в свой каталог BookHub.
+    </p>
+</header>
+
+<section class="bh-card">
+    <form method="get">
+        <input class="bh-input" type="text" name="query" placeholder="Например: Harry Potter" value="{{ query }}"
+            data-bh-search>
+    </form>
+
+    <div class="bh-spacer-vertical"></div>
+
+    {% if query and not results %}
+    <p class="bh-text-muted">Ничего не найдено. Попробуй изменить запрос.</p>
+    {% endif %}
+
+    {% for r in results %}
+    <article class="bh-card">
+        <div class="bh-card-row">
+            {% if r.cover_url %}
+            <img class="bh-cover" src="{{ r.cover_url }}" alt="">
+            {% endif %}
+            <div style="flex: 1;">
+                <div style="display:flex; justify-content:space-between; gap:8px;">
+                    <div>
+                        <div style="font-weight:600; font-size:14px;">{{ r.title }}</div>
+                        <div class="bh-text-muted">
+                            {% if r.year %}{{ r.year }} · {% endif %}
+                            {% for a in r.authors %}{{ a }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bh-spacer-vertical"></div>
+
+                <form method="post" action="{% url 'import_add' %}" data-bh-loading-target="#import-loading">
+                    {% csrf_token %}
+                    <input type="hidden" name="title" value="{{ r.title }}">
+                    <input type="hidden" name="year" value="{{ r.year }}">
+                    <input type="hidden" name="cover_url" value="{{ r.cover_url }}">
+                    <input type="hidden" name="source" value="{{ r.source }}">
+                    <input type="hidden" name="source_id" value="{{ r.source_id }}">
+                    <input type="hidden" name="authors"
+                        value="{% for a in r.authors %}{{ a }}{% if not forloop.last %};{% endif %}{% endfor %}">
+                    <button class="bh-btn bh-btn-primary bh-btn-small" type="submit">Добавить в каталог</button>
+                </form>
+            </div>
+        </div>
+    </article>
+    {% endfor %}
+</section>
+
+<div id="import-loading" class="bh-spacer-vertical" aria-hidden="true"></div>
+
+{% endblock %}

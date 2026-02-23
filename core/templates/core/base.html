@@ -1,0 +1,74 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="utf-8" />
+    <title>{% block title %}BookHub{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{% static 'core/css/app.css' %}">
+</head>
+
+<body>
+    <header class="bh-navbar">
+        <div class="bh-navbar-inner">
+            <a href="{% url 'book_list' %}" class="bh-logo">
+                <div class="bh-logo-mark">B</div>
+                <span class="bh-logo-text">BookHub</span>
+            </a>
+
+            <nav class="bh-nav-links bh-desktop-only">
+                <a href="{% url 'book_list' %}" class="bh-nav-link">Каталог</a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'my_library' %}" class="bh-nav-link">Моя библиотека</a>
+                {% endif %}
+            </nav>
+
+            <div class="bh-nav-right">
+                <form method="get" action="{% url 'book_list' %}" class="bh-desktop-only">
+                    <input class="bh-input" type="text" name="q" placeholder="Поиск книг"
+                        value="{{ request.GET.q }}" data-bh-search
+                        style="min-width:180px;">
+                </form>
+
+                <button type="button" class="bh-btn bh-btn-ghost bh-btn-small" data-bh-theme-toggle>
+                    🌗
+                </button>
+
+                {% if user.is_authenticated %}
+                <div class="bh-dropdown">
+                    <button type="button" class="bh-btn bh-btn-ghost bh-btn-small" data-bh-dropdown-toggle>
+                        <span class="bh-username">@{{ user.username }}</span>
+                    </button>
+                    <div class="bh-dropdown-menu">
+                        <a href="{% url 'my_library' %}" class="bh-dropdown-item">Моя библиотека</a>
+                        <a href="{% url 'logout' %}" class="bh-dropdown-item">Выйти</a>
+                    </div>
+                </div>
+                {% else %}
+                <a href="{% url 'login' %}" class="bh-btn bh-btn-ghost bh-btn-small">Войти</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="bh-toast-container">
+        {% if messages %}
+        {% for m in messages %}
+        <div class="bh-toast
+                    {% if m.tags == 'success' %}bh-toast-success{% endif %}
+                    {% if m.tags == 'error' %}bh-toast-error{% endif %}">
+            <span>{{ m }}</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <main class="bh-shell">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{% static 'core/js/app.js' %}" defer></script>
+</body>
+
+</html>

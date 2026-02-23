@@ -1,0 +1,79 @@
+{% extends "core/base.html" %}
+{% block title %}{{ book.title }}{% endblock %}
+{% block content %}
+
+<div class="bh-page-header">
+    <a href="{% url 'book_list' %}" class="bh-text-muted">← Назад к каталогу</a>
+</div>
+
+<section class="bh-card">
+    <div class="bh-card-row">
+        {% if book.cover_url %}
+        <img class="bh-cover" src="{{ book.cover_url }}" alt="">
+        {% endif %}
+        <div style="flex:1;">
+            <h1 class="bh-page-title" style="margin-bottom:6px;">{{ book.title }}</h1>
+            <div class="bh-text-muted">
+                {% if book.year %}{{ book.year }} · {% endif %}
+                {% for a in book.authors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </div>
+
+            <div class="bh-spacer-vertical"></div>
+
+            <div class="bh-flex-row bh-flex-space-between bh-flex-gap-8">
+                <div class="bh-chip-row">
+                    {% if book.is_paid %}
+                    <span class="bh-badge bh-badge-paid">{{ book.price }} ₸ · платная</span>
+                    {% else %}
+                    <span class="bh-badge bh-badge-free">Бесплатная</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bh-spacer-vertical"></div>
+
+            {% if user.is_authenticated %}
+            <div class="bh-chip-row">
+                <a href="{% url 'book_read' book.pk %}" class="bh-btn bh-btn-primary bh-btn-small">Читать</a>
+
+                <form class="inline" method="post" action="{% url 'library_add' book.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="wishlist">
+                    <button class="bh-btn bh-btn-ghost bh-btn-small" type="submit">+ В “Хочу”</button>
+                </form>
+                <form class="inline" method="post" action="{% url 'library_add' book.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="reading">
+                    <button class="bh-btn bh-btn-primary bh-btn-small" type="submit">Читаю</button>
+                </form>
+                <form class="inline" method="post" action="{% url 'library_add' book.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="finished">
+                    <button class="bh-btn bh-btn-ghost bh-btn-small" type="submit">Прочитано</button>
+                </form>
+            </div>
+            {% else %}
+            <p class="bh-text-muted">
+                Чтобы добавить книгу в свою библиотеку, пожалуйста, войдите в аккаунт.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="bh-spacer-vertical"></div>
+
+    {% if book.description %}
+    <p style="font-size:14px; line-height:1.55;">{{ book.description }}</p>
+    {% else %}
+    <p class="bh-text-muted"><i>Описание пока не заполнено.</i></p>
+    {% endif %}
+
+    {% if reading_progress %}
+    <div class="bh-spacer-vertical"></div>
+    <p class="bh-text-muted" style="font-size:13px;">
+        Продолжить: глава {{ reading_progress.chapter.order }}, страница {{ reading_progress.page_index }}.
+    </p>
+    {% endif %}
+</section>
+
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "core/base.html" %}
+{% block title %}Вход в BookHub{% endblock %}
+{% block content %}
+
+<section class="bh-page-header">
+    <h1 class="bh-page-title">Войти в BookHub</h1>
+    <p class="bh-page-subtitle">
+        Продолжай читать, следить за прогрессом и управлять своей библиотекой.
+    </p>
+</section>
+
+<section class="bh-card">
+    {% if form.non_field_errors %}
+    <div class="bh-spacer-vertical"></div>
+    <div class="bh-text-muted" style="color:#b91c1c;">
+        {% for error in form.non_field_errors %}
+        <div>{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <div class="bh-spacer-vertical"></div>
+
+        <div class="bh-spacer-vertical"></div>
+        <label class="bh-text-muted" for="id_username">Имя пользователя</label>
+        <input class="bh-input" type="text" name="username" id="id_username" autofocus
+               value="{{ form.username.value|default_if_none:'' }}">
+
+        <div class="bh-spacer-vertical"></div>
+        <label class="bh-text-muted" for="id_password">Пароль</label>
+        <input class="bh-input" type="password" name="password" id="id_password">
+
+        <div class="bh-spacer-vertical"></div>
+        <button class="bh-btn bh-btn-primary" type="submit">Войти</button>
+
+        {% if next %}
+        <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
+    </form>
+</section>
+
+{% endblock %}
+

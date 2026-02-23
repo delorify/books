@@ -1,0 +1,91 @@
+{% extends "core/base.html" %}
+{% block title %}{{ book.title }} — чтение{% endblock %}
+{% block content %}
+
+<div class="bh-reader"
+     data-bh-reader-base-url="{% url 'book_read' book.pk %}"
+     data-bh-reader-page="{{ page_number }}"
+     data-bh-reader-total="{{ total_pages }}">
+    <div class="bh-reader-header">
+        <div>
+            <a href="{% url 'book_detail' book.pk %}" class="bh-text-muted">← {{ book.title }}</a>
+        </div>
+        <div class="bh-reader-controls">
+            <button type="button" class="bh-btn bh-btn-ghost bh-btn-small" data-bh-reader-family="serif">
+                Серф
+            </button>
+            <button type="button" class="bh-btn bh-btn-ghost bh-btn-small" data-bh-reader-family="sans">
+                Без засечек
+            </button>
+            <button type="button" class="bh-btn bh-btn-ghost bh-btn-small" data-bh-reader-font="small">
+                A-
+            </button>
+            <button type="button" class="bh-btn bh-btn-ghost bh-btn-small" data-bh-reader-font="medium">
+                A
+            </button>
+            <button type="button" class="bh-btn bh-btn-ghost bh-btn-small" data-bh-reader-font="large">
+                A+
+            </button>
+            <button type="button" class="bh-btn bh-btn-ghost bh-btn-small" data-bh-reader-width="narrow">
+                Узко
+            </button>
+            <button type="button" class="bh-btn bh-btn-ghost bh-btn-small" data-bh-reader-width="wide">
+                Шире
+            </button>
+        </div>
+    </div>
+
+    <div class="bh-text-muted" style="font-size:13px; margin-bottom:6px;">
+        Страница {{ page_number }} из {{ total_pages }}
+    </div>
+
+    <article class="bh-reader-page">
+        {{ page.content|linebreaksbr }}
+    </article>
+
+    <div class="bh-spacer-vertical"></div>
+
+    <div class="bh-flex-row bh-flex-space-between bh-flex-gap-8" style="margin-top:4px;">
+        <button type="button"
+                class="bh-btn bh-btn-ghost bh-btn-small"
+                data-bh-reader-nav="prev"
+                {% if page_number <= 1 %}disabled{% endif %}>
+            ‹ Предыдущая
+        </button>
+
+        <div style="flex:1; display:flex; align-items:center; gap:8px; margin-inline:8px;">
+            <input type="range"
+                   min="1"
+                   max="{{ total_pages }}"
+                   value="{{ page_number }}"
+                   data-bh-reader-slider
+                   style="flex:1;">
+            <span class="bh-text-muted" style="font-size:12px;">
+                {{ page_number }} / {{ total_pages }}
+            </span>
+        </div>
+
+        <button type="button"
+                class="bh-btn bh-btn-ghost bh-btn-small"
+                data-bh-reader-nav="next"
+                {% if page_number >= total_pages %}disabled{% endif %}>
+            Следующая ›
+        </button>
+    </div>
+
+    <div class="bh-spacer-vertical"></div>
+
+    <nav class="bh-chip-row">
+        {% for ch in chapters %}
+        {% if ch.first_page_number %}
+        <a href="{% url 'book_read' book.pk %}?page={{ ch.first_page_number }}"
+           class="bh-chip {% if ch.id == page.chapter.id %}bh-chip-active{% endif %}">
+            {% if ch.title %}{{ ch.title }}{% else %}Глава {{ ch.order }}{% endif %}
+        </a>
+        {% endif %}
+        {% endfor %}
+    </nav>
+</div>
+
+{% endblock %}
+

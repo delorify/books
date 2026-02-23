@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block title %}Профиль{% endblock %}
+{% block content %}
+
+<header class="bh-page-header">
+    <h1 class="bh-page-title">Профиль</h1>
+    <p class="bh-page-subtitle">
+        Аккаунт BookHub, с которым связана твоя библиотека и прогресс чтения.
+    </p>
+</header>
+
+<section class="bh-card">
+    <div class="bh-flex-row bh-flex-gap-8">
+        <div>
+            <div style="width:56px; height:56px; border-radius:999px; background:var(--bh-bg-elevated); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:18px;">
+                {{ user.username|first|upper }}
+            </div>
+        </div>
+        <div>
+            <div style="font-weight:600;">{{ profile.display_name|default:user.username }}</div>
+            <div class="bh-text-muted">
+                {{ user.email|default:"Без e‑mail" }}
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
