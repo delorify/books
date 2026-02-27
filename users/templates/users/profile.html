@@ -1,5 +1,5 @@
 {% extends "core/base.html" %}
-{% block title %}Профиль{% endblock %}
+{% block title %}Профиль — {{ user.username }}{% endblock %}
 {% block content %}
 
 <header class="bh-page-header">
@@ -9,21 +9,54 @@
     </p>
 </header>
 
-<section class="bh-card">
-    <div class="bh-flex-row bh-flex-gap-8">
+<section class="bh-card" style="margin-bottom: 24px;">
+    <div class="bh-flex-row bh-flex-gap-16">
         <div>
-            <div style="width:56px; height:56px; border-radius:999px; background:var(--bh-bg-elevated); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:18px;">
+            <div style="width:64px; height:64px; border-radius:999px; background:var(--bh-primary); color: white; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:24px;">
                 {{ user.username|first|upper }}
             </div>
         </div>
-        <div>
-            <div style="font-weight:600;">{{ profile.display_name|default:user.username }}</div>
+        <div style="flex: 1;">
+            <div style="font-weight:600; font-size: 1.2rem;">{{ profile.display_name|default:user.username }}</div>
             <div class="bh-text-muted">
                 {{ user.email|default:"Без e‑mail" }}
             </div>
         </div>
+        <form action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="bh-btn bh-btn-ghost bh-btn-small" style="color: var(--bh-danger);">Выйти</button>
+        </form>
     </div>
 </section>
 
-{% endblock %}
+{% if last_read %}
+<section class="bh-card" style="border-left: 4px solid var(--bh-primary); background: var(--bh-bg-elevated);">
+    <div class="bh-flex-row bh-flex-space-between bh-flex-align-center">
+        <div>
+            <div class="bh-text-muted" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Продолжить чтение</div>
+            <h3 style="margin: 4px 0;">{{ last_read.book.title }}</h3>
+            <p class="bh-text-muted" style="margin: 0;">Страница {{ last_read.page.number }} из {{ last_read.book.pages.count }}</p>
+        </div>
+        <a href="{% url 'book_read' last_read.book.pk %}?page={{ last_read.page.number }}" class="bh-btn bh-btn-primary">
+            Читать далее →
+        </a>
+    </div>
+</section>
+{% endif %}
 
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 24px;">
+    <div class="bh-card" style="text-align: center;">
+        <div class="bh-text-muted">Читаю</div>
+        <div style="font-size: 32px; font-weight: 700;">{{ stats.reading|default:0 }}</div>
+    </div>
+    <div class="bh-card" style="text-align: center;">
+        <div class="bh-text-muted">Прочитано</div>
+        <div style="font-size: 32px; font-weight: 700;">{{ stats.finished|default:0 }}</div>
+    </div>
+    <div class="bh-card" style="text-align: center;">
+        <div class="bh-text-muted">В планах</div>
+        <div style="font-size: 32px; font-weight: 700;">{{ stats.wishlist|default:0 }}</div>
+    </div>
+</div>
+
+{% endblock %}

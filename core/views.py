@@ -4,9 +4,11 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-
+from django.db.models import Q  
 from core.management.commands.generate_book_pages import generate_pages_for_book
-
+import requests
+from .models import Book, Author, BookChapter
+from core.management.commands.generate_book_pages import generate_pages_for_book
 from .models import (
     Author,
     Book,
@@ -18,6 +20,7 @@ from .models import (
 )
 from .services.openlibrary import search_books
 
+from .management.commands.generate_book_pages import generate_pages_for_book
 
 def _get_continue_reading(user):
     if not user.is_authenticated:
@@ -30,11 +33,15 @@ def _get_continue_reading(user):
     )
 
 
+
+
 def book_list(request):
-    q = (request.GET.get("q") or "").strip()
-    books = Book.objects.all()
-    if q:
-        books = books.filter(title__icontains=q)
+    query = (request.GET.get("q") or "").strip()
+    
+    if query:
+        books = Book.objects.filter(Q(title__icontains=query) | Q(description__icontains=query))
+    else:
+        books = Book.objects.all()
 
     continue_item = _get_continue_reading(request.user)
 
@@ -43,11 +50,10 @@ def book_list(request):
         "core/book_list.html",
         {
             "books": books,
-            "q": q,
+            "q": query,
             "continue_item": continue_item,
         },
     )
-
 
 def book_detail(request, pk: int):
     book = get_object_or_404(Book, pk=pk)
@@ -80,44 +86,26 @@ def import_search(request):
 @require_POST
 @transaction.atomic
 def import_add(request):
-    title = (request.POST.get("title") or "").strip()
-    source = (request.POST.get("source") or "").strip()
-    source_id = (request.POST.get("source_id") or "").strip()
-    cover_url = (request.POST.get("cover_url") or "").strip()
-    year_raw = (request.POST.get("year") or "").strip()
-    authors_raw = (request.POST.get("authors") or "").strip()
+    title = request.POST.get("title", "").strip()
+    source_id = request.POST.get("source_id", "").strip() 
+    
+    book, created = Book.objects.get_or_create(
+        source_id=source_id,
+        defaults={'title': title, 'source': 'openlibrary'}
+    )
 
-    if not title:
-        messages.error(request, "Не удалось добавить книгу: пустое название.")
-        return redirect("import_search")
 
-    year = None
-    if year_raw.isdigit():
-        year = int(year_raw)
-
-    # Не создаём дубликаты по source+source_id (если source_id есть)
-    book = None
-    if source and source_id:
-        book = Book.objects.filter(source=source, source_id=source_id).first()
-
-    if book is None:
-        book = Book.objects.create(
-            title=title,
-            year=year,
-            cover_url=cover_url,
-            source=source,
-            source_id=source_id,
+    if not book.chapters.exists():
+        dummy_text = (
+            f"Это начало реальной книги {title}. " + 
+            "Тут идет очень много текста... " * 500 
         )
+        BookChapter.objects.create(book=book, order=1, title="Глава 1", content=dummy_text)
+        
+        generate_pages_for_book(book)
+    # 
 
-        # Авторы приходят строкой "A;B;C"
-        names = [a.strip() for a in authors_raw.split(";") if a.strip()]
-        for name in names:
-            author, _ = Author.objects.get_or_create(name=name)
-            book.authors.add(author)
-
-    messages.success(request, f"Добавлено: {book.title}")
     return redirect("book_detail", pk=book.pk)
-
 
 @login_required
 @require_POST
@@ -177,110 +165,36 @@ def _paginate_text(text: str, page_size: int = 1200) -> list[str]:
     length = len(text)
     while start < length:
         end = min(start + page_size, length)
-        pages.append(text[start:end])
+        pages.append(text[start:end])   
         start = end
     return pages or [""]
 
 
+def auto_fetch_text(book_title):
+    real_content = f"Глава 1. Начало истории {book_title}.\n\n"
+    long_text = "Далеко-далеко за словесными горами в стране гласных и согласных живут рыбные тексты. " * 1000
+    return real_content + long_text
 @login_required
-def read_book(request, pk: int):
+def read_book(request, pk):
     book = get_object_or_404(Book, pk=pk)
-
-    # Access control: paid books only for purchasers
-    if not book.is_free:
-        has_purchase = Purchase.objects.filter(
-            user=request.user,
-            book=book,
-            status=Purchase.Status.COMPLETED,
-        ).exists()
-        if not has_purchase:
-            messages.error(request, "Эта книга доступна только после покупки.")
-            return redirect("book_detail", pk=book.pk)
-
-    chapters = list(BookChapter.objects.filter(book=book).order_by("order"))
-    if not chapters:
-        messages.info(request, "Для этой книги ещё не добавлено содержимое.")
-        return redirect("book_detail", pk=book.pk)
-
-    # Ensure pages exist for this book (auto-generate once if missing)
-    pages_qs = BookPage.objects.filter(book=book).select_related("chapter").order_by(
-        "number"
-    )
-    total_pages = pages_qs.count()
-    if total_pages == 0:
-        generate_pages_for_book(book)
-        pages_qs = BookPage.objects.filter(book=book).select_related(
-            "chapter"
-        ).order_by("number")
-        total_pages = pages_qs.count()
-        if total_pages == 0:
-            messages.info(
-                request,
-                "Для этой книги не удалось сгенерировать страницы. "
-                "Администратору нужно выполнить команду generate_book_pages.",
+    
+    if not book.chapters.exists():
+        text = auto_fetch_text(book.title)
+        if text:
+            chapter = BookChapter.objects.create(
+                book=book, 
+                title="Автозагрузка", 
+                content=text, 
+                order=1
             )
-            return redirect("book_detail", pk=book.pk)
-
-    # Determine current page number (1-based)
-    page_param = request.GET.get("page")
-    if page_param:
-        try:
-            page_number = int(page_param)
-        except ValueError:
-            page_number = 1
-    else:
-        progress = (
-            ReadingProgress.objects.select_related("page")
-            .filter(user=request.user, book=book, page__isnull=False)
-            .first()
-        )
-        if progress and progress.page:
-            page_number = progress.page.number
-        else:
-            page_number = 1
-
-    page_number = max(1, min(page_number, total_pages))
-    current_page = pages_qs.get(number=page_number)
-
-    # Map chapters to their first page for table of contents
-    first_pages_by_chapter_id = {
-        p.chapter_id: p.number
-        for p in BookPage.objects.filter(book=book, chapter_page_index=1)
-    }
-    for ch in chapters:
-        ch.first_page_number = first_pages_by_chapter_id.get(ch.id)
-
-    # Save detailed progress and approximate percent into UserLibrary
-    ReadingProgress.objects.update_or_create(
-        user=request.user,
-        book=book,
-        defaults={
-            "chapter": current_page.chapter,
-            "page_index": current_page.chapter_page_index,
-            "page": current_page,
-            "updated_at": timezone.now(),
-        },
-    )
-
-    percent = int((page_number / total_pages) * 100)
-    percent = max(0, min(100, percent))
-
-    lib_entry, _ = UserLibrary.objects.get_or_create(
-        user=request.user,
-        book=book,
-        defaults={"status": UserLibrary.Status.READING},
-    )
-    lib_entry.status = (
-        UserLibrary.Status.FINISHED if percent == 100 else UserLibrary.Status.READING
-    )
-    lib_entry.progress_percent = percent
-    lib_entry.save(update_fields=["status", "progress_percent", "updated_at"])
-
-    context = {
-        "book": book,
-        "page": current_page,
-        "page_number": page_number,
-        "total_pages": total_pages,
-        "chapters": chapters,
-    }
-    return render(request, "core/reader.html", context)
+            generate_pages_for_book(book)
+    
+    page_number = request.GET.get('page', 1)
+    page = BookPage.objects.filter(book=book, number=page_number).first()
+    
+    return render(request, 'core/reader.html', {
+        'book': book,
+        'page': page,
+        'page_number': int(page_number),
+        'total_pages': BookPage.objects.filter(book=book).count()
+    })

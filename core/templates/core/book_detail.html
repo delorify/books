@@ -75,5 +75,14 @@
     </p>
     {% endif %}
 </section>
-
+<section class="bh-card" style="margin-top: 20px;">
+    <h3>Отзывы</h3>
+    {% for review in book.reviews.all %}
+        <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
+            <strong>{{ review.user.username }}</strong>: {{ review.text }}
+        </div>
+    {% empty %}
+        <p>Пока нет отзывов. Будьте первым!</p>
+    {% endfor %}
+</section>
 {% endblock %}

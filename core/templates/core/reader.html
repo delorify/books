@@ -86,6 +86,28 @@
         {% endfor %}
     </nav>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reader = document.querySelector('.bh-reader');
+    const baseUrl = reader.dataset.bhReaderBaseUrl;
+    const totalPages = parseInt(reader.dataset.bhReaderTotal);
+    let currentPage = parseInt(reader.dataset.bhReaderPage);
+
+    function goToPage(num) {
+        if (num >= 1 && num <= totalPages) {
+            // Просто переходим по ссылке с параметром страницы
+            window.location.href = baseUrl + "?page=" + num;
+        }
+    }
+
+    // Кнопки Назад / Вперед
+    document.querySelector('[data-bh-reader-nav="prev"]').onclick = () => goToPage(currentPage - 1);
+    document.querySelector('[data-bh-reader-nav="next"]').onclick = () => goToPage(currentPage + 1);
+
+    // Слайдер (ползунок)
+    document.querySelector('[data-bh-reader-slider]').onchange = (e) => goToPage(e.target.value);
+});
+</script>
 
 {% endblock %}
 

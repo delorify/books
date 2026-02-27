@@ -201,3 +201,17 @@ class ReadingProgress(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} @ {self.book} ch{self.chapter.order} p{self.page_index}"
+    
+class Review(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    text = models.TextField(verbose_name="Текст отзыва")
+    rating = models.PositiveSmallIntegerField(default=5, verbose_name="Оценка (1-5)")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("book", "user") # Один пользователь — один отзыв на книгу
+
+    def __str__(self) -> str:
+        return f"Отзыв от {self.user} на {self.book.title}"
